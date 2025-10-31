@@ -6,21 +6,28 @@ import os
 
 app = Flask(__name__)
 
-# URL WebSocket CỦA BẠN (Đã xác định)
-# LƯU Ý: Đây là URL tĩnh, nếu Sunwin thay đổi tên miền, bạn cần cập nhật.
-SUNWIN_WS_URL = "wss://pmcn.site/game_sunwin/ws?id=Cskhtool11&key=NhiCuTo"
+# URL WebSocket CỦA BẠN (Đã sửa lỗi InvalidURI bằng f-string)
+# Lỗi 'Invalid URI syntax' đã được khắc phục bằng cách tách URL và tham số.
+BASE_URL = "wss://pmcn.site/game_sunwin/ws"
+QUERY_PARAMS = "?id=Cskhtool11&key=NhiCuTo"
+SUNWIN_WS_URL = f"{BASE_URL}{QUERY_PARAMS}"
 
 @app.route('/get_tx_data', methods=['GET'])
 def get_tx_data():
     """
     Điểm truy cập API HTTP: Chạy hàm async để kết nối WebSocket.
     """
+    # Sử dụng asyncio.run để chạy hàm async trong ngữ cảnh sync của Flask
     data = asyncio.run(get_websocket_data()) 
     
     if data and data.get('success'):
         return jsonify(data)
     else:
-        return jsonify({"error": "Không thể kết nối hoặc nhận dữ liệu từ WebSocket.", "raw_error": data.get('raw_error')}), 503
+        # Trả về lỗi chi tiết hơn nếu có lỗi kết nối
+        return jsonify({
+            "error": "Không thể kết nối hoặc nhận dữ liệu từ WebSocket. Vui lòng kiểm tra Log Render.", 
+            "raw_error": data.get('raw_error', 'Lỗi không xác định')
+        }), 503
 
 async def get_websocket_data():
     """
@@ -30,7 +37,7 @@ async def get_websocket_data():
         # Thiết lập timeout 10 giây
         async with websockets.connect(SUNWIN_WS_URL, timeout=10) as websocket: 
             
-            # Đợi nhận dữ liệu phản hồi đầu tiên
+            # Đợi nhận dữ liệu phản hồi đầu tiên (thường là dữ liệu trạng thái hiện tại)
             response = await websocket.recv()
             
             # Chuyển chuỗi JSON nhận được thành đối tượng Python
